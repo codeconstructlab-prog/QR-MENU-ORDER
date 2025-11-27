@@ -6,7 +6,6 @@
   <title>Menu — QR Ordering</title>
 
   <!-- SUPABASE SDK -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
     :root{
@@ -108,12 +107,12 @@
     </div>
   </div>
 
-<script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
 
 /* ========= SUPABASE CONFIG ========= */
 const SUPABASE_URL = "https://wlnyyvcukcyyjmdxjdji.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indsbnl5dmN1a2N5eWptZHhqZGppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQyMTc4MDksImV4cCI6MjA3OTc5MzgwOX0.mcbI2SpvJKwWjUqbX8xxz05MGrZvkdtqGJKd9ysSIEA";
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 /* ========= UTILITIES ========= */
 const qs = s => document.querySelector(s);
@@ -132,7 +131,7 @@ let cart = [];
 
 /* ========= SUPABASE MENU FETCH ========= */
 async function loadMenu() {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("menu")
     .select("*")
     .order("id");
@@ -271,7 +270,7 @@ async function sendOrder(){
 
   const order = buildOrderPayload();
 
-  const { error } = await supabase
+  const { error } = await db
     .from("orders")
     .insert([{
       table_no: order.table_no,
