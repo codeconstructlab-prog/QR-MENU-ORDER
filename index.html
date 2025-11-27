@@ -1,9 +1,13 @@
-<!doctype html>
+<!doctype html> 
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Menu — QR Ordering</title>
+
+  <!-- SUPABASE SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
   <style>
     :root{
       --accent:#ff6347;
@@ -50,20 +54,16 @@
     }
     .cart button{padding:10px 12px; border-radius:10px; border:none; cursor:pointer;}
     .badge{background:#222; color:#fff; padding:6px 8px; border-radius:999px; font-weight:700;}
-    /* modal */
     .modal-backdrop{position:fixed; inset:0; background:rgba(0,0,0,0.45); display:none; align-items:center; justify-content:center; z-index:60;}
     .modal{background:#fff; width:min(800px,95%); border-radius:12px; padding:16px; max-height:85vh; overflow:auto;}
     table{width:100%; border-collapse:collapse;}
     th,td{padding:8px 6px; text-align:left; border-bottom:1px solid #eee;}
     .qty-btn{padding:6px 8px; border-radius:6px; border:1px solid #ddd; cursor:pointer; background:#fff;}
     .small{font-size:0.9rem; color:var(--muted);}
-    @media (max-width:600px){
-      .controls{flex-direction:column; align-items:stretch;}
-      header{flex-direction:column; align-items:flex-start; gap:8px;}
-    }
   </style>
 </head>
 <body>
+
   <header>
     <div>
       <h1>Vilasa International</h1>
@@ -87,7 +87,7 @@
   </div>
 
   <footer class="cart-bar">
-    <div class="cart" role="region" aria-label="Cart">
+    <div class="cart">
       <div style="display:flex;flex-direction:column;margin-right:12px;">
         <div style="font-weight:700">Cart</div>
         <div class="small" id="cartItemsSmall">0 items • ₹0</div>
@@ -97,9 +97,8 @@
     </div>
   </footer>
 
-  <!-- modal -->
   <div id="modalBackdrop" class="modal-backdrop">
-    <div class="modal" role="dialog" aria-modal="true">
+    <div class="modal">
       <h3>Order Summary</h3>
       <div id="orderContent"></div>
       <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;">
@@ -110,252 +109,215 @@
   </div>
 
 <script>
-/* ================== CONFIG ================== */
-/* Replace this with your raw github url OR "menu.json" if local. */
-const MENU_URL = "https://raw.githubusercontent.com/codeconstructlab-prog/QR-MENU-ORDER/refs/heads/main/menu.json";
-/* Example GitHub raw: https://raw.githubusercontent.com/USERNAME/REPO/main/menu.json */
 
-/* ================== UTILITIES ================== */
-const qs = sel => document.querySelector(sel);
-const qsa = sel => Array.from(document.querySelectorAll(sel));
-const tableInfoEl = qs('#table-info');
+/* ========= SUPABASE CONFIG ========= */
+const SUPABASE_URL = "https://wlnyyvcukcyyjmdxjdji.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indsbnl5dmN1a2N5eWptZHhqZGppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQyMTc4MDksImV4cCI6MjA3OTc5MzgwOX0.mcbI2SpvJKwWjUqbX8xxz05MGrZvkdtqGJKd9ysSIEA";
+const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-function getTableFromURL(){
-  const p = new URLSearchParams(window.location.search);
-  return p.get('table') || p.get('table_no') || p.get('t') || 'Unknown';
-}
-
-/* ================== APP STATE ================== */
-let MENU = []; // loaded menu items
-let filtered = [];
-let cart = []; // {id, name, price, qty}
-
-/* ================== RENDER ================== */
-function renderCategories(){
-  const cats = Array.from(new Set(MENU.map(i=>i.category))).filter(Boolean).sort();
-  const sel = qs('#categoryFilter');
-  sel.innerHTML = `<option value="">All categories</option>` + cats.map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
-}
-
+/* ========= UTILITIES ========= */
+const qs = s => document.querySelector(s);
+const qsa = s => [...document.querySelectorAll(s)];
 function escapeHtml(s){ return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;'); }
 
+function getTableFromURL(){
+  const p = new URLSearchParams(location.search);
+  return p.get("table") || "Unknown";
+}
+
+/* ========= STATE ========= */
+let MENU = [];
+let filtered = [];
+let cart = [];
+
+/* ========= SUPABASE MENU FETCH ========= */
+async function loadMenu() {
+  const { data, error } = await supabase
+    .from("menu")
+    .select("*")
+    .order("id");
+
+  if (error) {
+    console.error("Menu fetch error:", error);
+    return [];
+  }
+  return data;
+}
+
+/* ========= RENDER ========= */
+function renderCategories(){
+  const cats = [...new Set(MENU.map(i => i.category))].sort();
+  qs("#categoryFilter").innerHTML =
+    `<option value="">All categories</option>` +
+    cats.map(c => `<option>${escapeHtml(c)}</option>`).join("");
+}
+
 function renderMenu(list){
-  const container = qs('#menu');
-  container.innerHTML = '';
-  document.getElementById('count').textContent = list.length;
-  if(list.length === 0){
-    container.innerHTML = `<div style="grid-column:1/-1;padding:40px;text-align:center;color:var(--muted)">No items found</div>`;
+  const div = qs("#menu");
+  div.innerHTML = "";
+  qs("#count").textContent = list.length;
+
+  if (!list.length){
+    div.innerHTML = `<div style="grid-column:1/-1;padding:40px;text-align:center;color:var(--muted)">No items found</div>`;
     return;
   }
-  list.forEach(item=>{
-    const div = document.createElement('div');
-    div.className = 'card';
-    // image lazy load with loading="lazy"
-    div.innerHTML = `
-      <img class="thumb" loading="lazy" decoding="async" src="${item.img}" alt="${escapeHtml(item.name)}">
+
+  list.forEach(item => {
+    const card = document.createElement("div");
+    card.className = "card";
+    card.innerHTML = `
+      <img class="thumb" loading="lazy" src="${item.img}">
       <div class="card-body">
         <div class="title">${escapeHtml(item.name)}</div>
         <div class="cat small">${escapeHtml(item.category)}</div>
-        <div style="display:flex;align-items:center;gap:8px;" class="price-row">
+        <div class="price-row">
           <div class="price">₹${item.price}</div>
           <button class="add-btn" data-id="${item.id}">Add</button>
         </div>
       </div>
     `;
-    container.appendChild(div);
+    div.appendChild(card);
   });
-  // attach add events
-  qsa('.add-btn').forEach(btn=>{
-    btn.onclick = ()=> {
+
+  qsa(".add-btn").forEach(btn => {
+    btn.onclick = () => {
       const id = Number(btn.dataset.id);
-      const item = MENU.find(m=>m.id===id);
-      addToCart(item, 1);
-      // small animation
-      btn.textContent = 'Added';
-      setTimeout(()=>btn.textContent = 'Add',700);
+      const item = MENU.find(m => m.id === id);
+      addToCart(item);
+      btn.textContent = "Added";
+      setTimeout(() => btn.textContent = "Add", 700);
     };
   });
 }
 
-/* ================== FILTER & SEARCH ================== */
 function applyFilters(){
-  const q = qs('#search').value.trim().toLowerCase();
-  const cat = qs('#categoryFilter').value;
-  filtered = MENU.filter(it=>{
-    const matchesCat = cat ? it.category === cat : true;
-    const matchesQ = q ? (it.name.toLowerCase().includes(q) || (it.category||'').toLowerCase().includes(q)) : true;
-    return matchesCat && matchesQ;
+  const q = qs("#search").value.toLowerCase();
+  const c = qs("#categoryFilter").value;
+
+  filtered = MENU.filter(it => {
+    const catOK = c ? it.category === c : true;
+    const searchOK = q ? it.name.toLowerCase().includes(q) : true;
+    return catOK && searchOK;
   });
+
   renderMenu(filtered);
 }
 
-/* ================== CART ================== */
-function addToCart(item, qty=1){
-  const existing = cart.find(c=>c.id===item.id);
-  if(existing) existing.qty += qty;
-  else cart.push({id:item.id, name:item.name, price:item.price, qty});
+/* ======== CART ======== */
+function addToCart(item){
+  const ex = cart.find(c => c.id === item.id);
+  if (ex) ex.qty++;
+  else cart.push({ ...item, qty: 1 });
   updateCartUI();
 }
 
 function updateCartUI(){
-  const total = cart.reduce((s,i)=>s + i.price * i.qty, 0);
-  const count = cart.reduce((s,i)=>s + i.qty, 0);
-  qs('#cartItemsSmall').textContent = `${count} items • ₹${total}`;
+  const total = cart.reduce((s,i)=>s+i.price*i.qty,0);
+  const count = cart.reduce((s,i)=>s+i.qty,0);
+  qs("#cartItemsSmall").textContent = `${count} items • ₹${total}`;
 }
 
 function showCartModal(){
-  const modal = qs('#modalBackdrop');
-  const content = qs('#orderContent');
-  if(cart.length===0){
-    content.innerHTML = `<div style="padding:18px;color:var(--muted)">Cart is empty</div>`;
+  const modal = qs("#modalBackdrop");
+  const content = qs("#orderContent");
+
+  if (!cart.length){
+    content.innerHTML = `<div style="padding:20px;color:#666">Cart is empty</div>`;
   } else {
     let html = `<table><thead><tr><th>Item</th><th>Price</th><th>Qty</th><th>Total</th></tr></thead><tbody>`;
-    cart.forEach(ci=>{
-      html += `<tr>
-        <td>${escapeHtml(ci.name)}</td>
-        <td>₹${ci.price}</td>
+    cart.forEach(c => {
+      html += `
+      <tr>
+        <td>${escapeHtml(c.name)}</td>
+        <td>₹${c.price}</td>
         <td>
-          <button class="qty-btn" data-act="dec" data-id="${ci.id}">-</button>
-          &nbsp; ${ci.qty} &nbsp;
-          <button class="qty-btn" data-act="inc" data-id="${ci.id}">+</button>
+          <button class="qty-btn" data-id="${c.id}" data-act="dec">-</button>
+          ${c.qty}
+          <button class="qty-btn" data-id="${c.id}" data-act="inc">+</button>
         </td>
-        <td>₹${ci.price * ci.qty}</td>
+        <td>₹${c.qty * c.price}</td>
       </tr>`;
     });
-    const total = cart.reduce((s,i)=>s + i.price*i.qty,0);
-    html += `</tbody></table><div style="text-align:right;margin-top:8px;font-weight:700">Total: ₹${total}</div>`;
+    html += `</tbody></table>`;
     content.innerHTML = html;
 
-    // attach qty events
-    qsa('.qty-btn').forEach(b=>{
+    qsa(".qty-btn").forEach(b => {
       b.onclick = () => {
-        const id = Number(b.dataset.id);
-        const act = b.dataset.act;
-        const item = cart.find(c=>c.id===id);
-        if(!item) return;
-        if(act === 'inc') item.qty++;
-        else item.qty = Math.max(0, item.qty - 1);
-        // remove zero-qty
-        cart = cart.filter(c=>c.qty>0);
+        const item = cart.find(x => x.id == b.dataset.id);
+        b.dataset.act === "inc" ? item.qty++ : item.qty--;
+        cart = cart.filter(x => x.qty > 0);
         showCartModal();
         updateCartUI();
       };
     });
   }
-  modal.style.display = 'flex';
+
+  modal.style.display = "flex";
 }
 
-/* ================== CHECKOUT / SEND ORDER ================== */
+/* ========= ORDER BUILD ========= */
 function buildOrderPayload(){
-  const table = getTableFromURL();
-  const order = {
-    table,
-    created_at: new Date().toISOString(),
-    items: cart.map(c=>({id:c.id, name:c.name, price:c.price, qty:c.qty})),
-    total: cart.reduce((s,i)=>s + i.price*i.qty, 0)
+  return {
+    table_no: getTableFromURL(),
+    items: cart.map(c => ({ id: c.id, name: c.name, price: c.price, qty: c.qty })),
+    total: cart.reduce((s,i)=>s+i.price*i.qty,0),
+    created_at: new Date().toISOString()
   };
-  return order;
 }
 
+/* ========= SEND ORDER TO SUPABASE ========= */
 async function sendOrder(){
-  if(cart.length===0) { alert('Cart is empty'); return; }
-  const payload = buildOrderPayload();
-  // For now we just show JSON to user. You can POST this to your Apps Script webhook or Firebase.
-  try {
-    // Example: send to webhook (uncomment & replace WEBHOOK_URL to enable)
-    /*
-    const WEBHOOK_URL = "YOUR_APPS_SCRIPT_WEBHOOK_URL";
-    const res = await fetch(WEBHOOK_URL, {
-      method: "POST",
-      headers: {"Content-Type":"application/json"},
-      body: JSON.stringify(payload)
-    });
-    if(!res.ok) throw new Error('Network response was not ok');
-    alert('Order sent to kitchen!');
-    */
-    // fallback: show JSON and copy to clipboard
-    const txt = JSON.stringify(payload, null, 2);
-    await navigator.clipboard.writeText(txt);
-    alert('Order JSON copied to clipboard (you can paste to owner).');
-    // clear cart
-    cart = [];
-    updateCartUI();
-    qs('#modalBackdrop').style.display = 'none';
-  } catch(err){
-    console.error(err);
-    alert('Failed to send order. See console for details.');
+  if (!cart.length) return alert("Cart is empty");
+
+  const order = buildOrderPayload();
+
+  const { error } = await supabase
+    .from("orders")
+    .insert([{
+      table_no: order.table_no,
+      items_json: order.items,
+      total: order.total,
+      created_at: order.created_at
+    }]);
+
+  if (error){
+    console.error(error);
+    return alert("Failed to place order");
   }
+
+  alert("Order placed!");
+  cart = [];
+  updateCartUI();
+  qs("#modalBackdrop").style.display = "none";
 }
 
-/* ================== BOOTSTRAP / FETCH MENU ================== */
+/* ========= INIT ========= */
 async function init(){
-  tableInfoEl.textContent = 'Table: ' + getTableFromURL();
+  qs("#table-info").textContent = "Table: " + getTableFromURL();
 
-  // allow local/testing fallback if MENU_URL not configured
-  if(!MENU_URL || MENU_URL.includes('PUT_YOUR_RAW_URL_HERE')){
-    console.warn('MENU_URL not configured. Trying local menu.json...');
-  }
-
-  try {
-    const res = await fetch(MENU_URL);
-    if(!res.ok) throw new Error('HTTP ' + res.status);
-    MENU = await res.json();
-  } catch(err){
-    console.warn('Fetch failed:', err);
-    // fallback: try local menu.json
-    try {
-      const res2 = await fetch('menu.json');
-      if(res2.ok) {
-        MENU = await res2.json();
-      } else {
-        throw new Error('Local fallback failed');
-      }
-    } catch(err2){
-      console.error('Failed to load menu.json:', err2);
-      // show friendly message
-      qs('#menu').innerHTML = `<div style="grid-column:1/-1;padding:40px;text-align:center;color:var(--muted)">
-        Unable to load menu. Make sure MENU_URL is set to a CORS-friendly raw URL or keep a local menu.json in same folder.
-      </div>`;
-      return;
-    }
-  }
-
-  // ensure numeric ids and proper data
-  MENU = MENU.map((it, idx) => ({
-    id: Number(it.id ?? (idx+1)),
-    name: String(it.name ?? 'Item'),
-    price: Number(it.price ?? 0),
-    category: String(it.category ?? 'Misc'),
-    img: String(it.img ?? 'https://picsum.photos/400?random=' + (100+idx))
-  }));
-
+  MENU = await loadMenu();
   renderCategories();
   applyFilters();
 
-  // events
-  qs('#search').addEventListener('input', ()=> applyFilters());
-  qs('#categoryFilter').addEventListener('change', ()=> applyFilters());
-  qs('#clearFilters').addEventListener('click', ()=>{
-    qs('#search').value = '';
-    qs('#categoryFilter').value = '';
+  qs("#search").oninput = applyFilters;
+  qs("#categoryFilter").onchange = applyFilters;
+  qs("#clearFilters").onclick = () => {
+    qs("#search").value = "";
+    qs("#categoryFilter").value = "";
     applyFilters();
-  });
-  qs('#viewCart').addEventListener('click', ()=> showCartModal());
-  qs('#checkout').addEventListener('click', ()=> {
-    // open modal first
-    showCartModal();
-  });
-  qs('#closeModal').addEventListener('click', ()=> qs('#modalBackdrop').style.display = 'none');
-  qs('#modalBackdrop').addEventListener('click', (e)=> { if(e.target === qs('#modalBackdrop')) qs('#modalBackdrop').style.display = 'none'; });
-  qs('#sendOrder').addEventListener('click', sendOrder);
+  };
+
+  qs("#viewCart").onclick = showCartModal;
+  qs("#checkout").onclick = showCartModal;
+  qs("#closeModal").onclick = () => qs("#modalBackdrop").style.display = "none";
+  qs("#modalBackdrop").onclick = e => { if(e.target.id === "modalBackdrop") qs("#modalBackdrop").style.display = "none"; };
+  qs("#sendOrder").onclick = sendOrder;
+
   updateCartUI();
 }
 
-/* run */
 init();
-
 </script>
+
 </body>
 </html>
-
-
