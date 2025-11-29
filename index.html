@@ -1,325 +1,615 @@
-<!doctype html> 
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Menu — QR Ordering</title>
-
-  <!-- SUPABASE SDK -->
-
+  <title>Menu — QR Ordering (Updated)</title>
   <style>
-    :root{
-      --accent:#ff6347;
-      --bg:#f6f7f9;
-      --card:#ffffff;
-      --muted:#666;
-      --radius:12px;
-    }
-    *{box-sizing:border-box}
-    body{font-family:system-ui,Segoe UI,Arial; margin:0; background:var(--bg); color:#111;}
-    header{
-      background:var(--accent); color:#fff; padding:18px 16px; display:flex; gap:12px; align-items:center; justify-content:space-between;
-      position:sticky; top:0; z-index:20;
-    }
-    header h1{margin:0; font-size:1.05rem;}
-    header .meta{font-size:0.95rem; opacity:0.95}
-    .container{max-width:1100px; margin:18px auto; padding:0 16px;}
-    .controls{display:flex; gap:8px; align-items:center; margin-bottom:12px; flex-wrap:wrap;}
-    .controls input[type="search"], .controls select {
-      padding:10px 12px; border-radius:10px; border:1px solid #e3e6ea; min-width:180px;
-    }
-    .controls button{background:var(--accent); color:#fff; border:none; padding:10px 12px; border-radius:10px; cursor:pointer;}
-    .menu-grid{
-      display:grid;
-      grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
-      gap:12px;
-    }
-    .card{
-      background:var(--card); border-radius:var(--radius); overflow:hidden; box-shadow:0 6px 18px rgba(12,20,30,0.06);
-      display:flex; flex-direction:column;
-    }
-    .thumb{width:100%; aspect-ratio:4/3; object-fit:cover; display:block; background:#eee;}
-    .card-body{padding:12px; display:flex; flex-direction:column; gap:8px; flex:1;}
-    .title{font-weight:600; font-size:1rem;}
-    .cat{font-size:0.82rem; color:var(--muted);}
-    .price-row{display:flex; align-items:center; justify-content:space-between; margin-top:auto;}
-    .price{font-weight:700;}
-    .add-btn{background:var(--accent); color:#fff; border:none; padding:8px 10px; border-radius:8px; cursor:pointer;}
-    footer.cart-bar{
-      position:fixed; left:16px; right:16px; bottom:16px; z-index:40; display:flex; justify-content:flex-end;
-    }
-    .cart{
-      background:linear-gradient(180deg,#fff,#fafafa); padding:12px; border-radius:14px; box-shadow:0 8px 24px rgba(12,20,30,0.12); display:flex; gap:10px; align-items:center;
-    }
-    .cart button{padding:10px 12px; border-radius:10px; border:none; cursor:pointer;}
-    .badge{background:#222; color:#fff; padding:6px 8px; border-radius:999px; font-weight:700;}
-    .modal-backdrop{position:fixed; inset:0; background:rgba(0,0,0,0.45); display:none; align-items:center; justify-content:center; z-index:60;}
-    .modal{background:#fff; width:min(800px,95%); border-radius:12px; padding:16px; max-height:85vh; overflow:auto;}
-    table{width:100%; border-collapse:collapse;}
-    th,td{padding:8px 6px; text-align:left; border-bottom:1px solid #eee;}
-    .qty-btn{padding:6px 8px; border-radius:6px; border:1px solid #ddd; cursor:pointer; background:#fff;}
-    .small{font-size:0.9rem; color:var(--muted);}
+    :root{--accent:#ff6347;--bg:#f6f7f9;--card:#ffffff;--muted:#666;--radius:12px}
+    *{box-sizing:border-box}body{font-family:system-ui,Segoe UI,Arial;margin:0;background:var(--bg);color:#111}
+    /* sticky header + category */
+    .sticky-top{position:sticky;top:0;z-index:60;background:var(--bg);padding-bottom:8px}
+    header{background:var(--accent);color:#fff;padding:16px;display:flex;gap:12px;align-items:center;justify-content:space-between}
+    header h1{margin:0;font-size:1.05rem}header .meta{font-size:0.95rem;opacity:0.95}
+    .container{max-width:1100px;margin:14px auto;padding:0 16px}
+    .controls{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+    .controls input[type="search"],.controls select{padding:10px 12px;border-radius:10px;border:1px solid #e3e6ea;min-width:180px}
+    .controls button{background:var(--accent);color:#fff;border:none;padding:10px 12px;border-radius:10px;cursor:pointer}
+
+    .menu-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+    .card{background:var(--card);border-radius:var(--radius);overflow:hidden;box-shadow:0 6px 18px rgba(12,20,30,0.06);display:flex;flex-direction:column}
+    .thumb{width:100%;aspect-ratio:4/3;object-fit:cover;display:block;background:#ddd}
+    .card-body{padding:10px;display:flex;flex-direction:column;gap:6px;flex:1}
+    .title{font-weight:600;font-size:0.95rem}
+    .cat{font-size:0.8rem;color:var(--muted)}
+    .rating{font-size:0.8rem;color:#f5b400;font-weight:700}
+    .price-row{display:flex;align-items:center;justify-content:space-between;margin-top:auto}
+    .price{font-weight:700}
+    .add-btn{background:var(--accent);color:#fff;border:none;padding:8px 10px;border-radius:8px;cursor:pointer;font-size:0.85rem}
+
+    footer.cart-bar{position:fixed;right:16px;bottom:16px;z-index:70;display:flex;justify-content:flex-end;width: fit-content;}
+    .cart{background:linear-gradient(180deg,#fff,#fafafa);padding:12px;border-radius:14px;box-shadow:0 8px 24px rgba(12,20,30,0.12);display:flex;gap:10px;align-items:center;width: fit-content;}
+
+    /* modal */
+    .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.45);display:none;align-items:center;justify-content:center;z-index:80}
+    .modal{background:#fff;width:min(820px,96%);border-radius:12px;padding:16px;max-height:85vh;overflow:auto}
+    table{width:100%;border-collapse:collapse}th,td{padding:8px 6px;text-align:left;border-bottom:1px solid #eee}
+    .qty-btn{padding:6px 10px;border-radius:6px;border:1px solid #ddd;cursor:pointer;background:#fff}
+     
+    #floatingButtons {
+  position: fixed;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  z-index: 9999;
+}
+
+.float-btn {
+  background: linear-gradient(45deg, #ff006a, #ff6b00, #ffbb00);
+  color: #fff;
+  padding: 10px 18px;
+  border: none;
+  border-radius: 30px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 14px;
+  white-space: nowrap;      /* text wrap nahi hoga */
+  display: flex;
+  align-items: center;
+  justify-content: center;  /* text perfectly center */
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  transition: all 0.25s ease;
+}
+
+.float-btn:hover {
+  transform: scale(1.07);
+  filter: brightness(1.08);
+}
+
+
+    /* circular progress button */
+    .circle-btn{width:64px;height:64px;border-radius:50%;border:none;background:conic-gradient(var(--accent) 0deg, #e00606 0deg);display:flex;align-items:center;justify-content:center;color:#181717;font-weight:700;cursor:pointer}
+    .circle-wrap{display:flex;gap:10px;align-items:center}
+    .cancel-btn{background:#fff;border:1px solid #ddd;padding:8px 10px;border-radius:8px;cursor:pointer}
+
+    @media(max-width:600px){.controls{flex-direction:column;align-items:stretch}header{flex-direction:column;align-items:flex-start;gap:8px}}
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 </head>
 <body>
 
+<div class="sticky-top">
   <header>
     <div>
-      <h1>Vilasa International</h1>
-      <div class="small">Scan QR and order — simple & free</div>
+      <h1>Restaurant Menu</h1>
+      <div class="small">Scan QR and order — simple &amp; fast</div>
     </div>
     <div class="meta" id="table-info">Table: —</div>
   </header>
 
   <div class="container">
     <div class="controls">
-      <input type="search" id="search" placeholder="Search items, e.g. paneer, biryani..." />
-      <select id="categoryFilter">
-        <option value="">All categories</option>
-      </select>
+      <input type="search" id="search" placeholder="Search items..." />
+      <select id="categoryFilter"><option value="">All categories</option></select>
       <button id="clearFilters">Clear</button>
+      <button id="addAll">Add All</button>
       <div style="flex:1"></div>
       <div class="small">Items: <span id="count">0</span></div>
     </div>
-
-    <div id="menu" class="menu-grid" aria-live="polite"></div>
   </div>
+</div>
 
-  <footer class="cart-bar">
-    <div class="cart">
-      <div style="display:flex;flex-direction:column;margin-right:12px;">
-        <div style="font-weight:700">Cart</div>
-        <div class="small" id="cartItemsSmall">0 items • ₹0</div>
-      </div>
-      <button id="viewCart" style="background:#fff;border:1px solid #ddd;margin-right:8px;">View Cart</button>
-      <button id="checkout" style="background:var(--accent);color:#fff;">Checkout</button>
+<div class="container">
+  <div id="menu" class="menu-grid" aria-live="polite"></div>
+</div>
+
+<footer class="cart-bar">
+  <div class="cart">
+    <div style="display:flex;flex-direction:column;margin-right:12px;">
+      <div style="font-weight:700">Cart</div>
+      <div class="small" id="cartItemsSmall">0 items • ₹0</div>
     </div>
-  </footer>
+    <button id="viewCart" style="background:#fff;border:1px solid #ddd;margin-right:8px;">View</button>
+    <button id="checkout" style="background:var(--accent);color:#fff;">Checkout</button>
+  </div>
+</footer>
+<!-- Right Floating Buttons -->
+<div id="floatingButtons">
+  <button class="float-btn" data-action="call_waiter">Call Waiter</button>
+  <button class="float-btn" data-action="get_bill">Get the Bill</button>
+</div>
 
-  <div id="modalBackdrop" class="modal-backdrop">
-    <div class="modal">
-      <h3>Order Summary</h3>
-      <div id="orderContent"></div>
-      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;">
-        <button id="closeModal" style="background:#fff;border:1px solid #ddd;padding:8px 10px;border-radius:8px;">Close</button>
-        <button id="sendOrder" style="background:var(--accent);color:#fff;padding:8px 12px;border-radius:8px;">Send Order</button>
+
+<div id="modalBackdrop" class="modal-backdrop">
+  <div class="modal" role="dialog" aria-modal="true">
+    <h3>Order Summary</h3>
+    <div id="orderContent"></div>
+    <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:12px;align-items:center;">
+      <!-- circular progress + cancel will be inserted here when placing -->
+      <div class="circle-wrap" id="actionArea">
+        <button id="startPlace" class="circle-btn">Place</button>
       </div>
     </div>
   </div>
+</div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-  
+/* ---------------- CONFIG ---------------- */
+const SUPABASE_URL = 'https://wlnyyvcukcyyjmdxjdji.supabase.co'; // set to 'https://<project>.supabase.co' to enable
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indsbnl5dmN1a2N5eWptZHhqZGppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQyMTc4MDksImV4cCI6MjA3OTc5MzgwOX0.mcbI2SpvJKwWjUqbX8xxz05MGrZvkdtqGJKd9ysSIEA'; // set anon key
+const MENU_TABLE = 'menu';
+const ORDERS_TABLE = 'orders';
+const MENU_URL = 'menu.json'; // fallback local menu
+const SMS_HOOK_URL = ''; // optional webhook for SMS {to,message}
 
-/* ========= SUPABASE CONFIG ========= */
-const SUPABASE_URL = "https://wlnyyvcukcyyjmdxjdji.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indsbnl5dmN1a2N5eWptZHhqZGppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQyMTc4MDksImV4cCI6MjA3OTc5MzgwOX0.mcbI2SpvJKwWjUqbX8xxz05MGrZvkdtqGJKd9ysSIEA";
-const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-/* ========= UTILITIES ========= */
+/* ---------------- HELPERS ---------------- */
 const qs = s => document.querySelector(s);
-const qsa = s => [...document.querySelectorAll(s)];
-function escapeHtml(s){ return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;'); }
-
-function getTableFromURL(){
-  const p = new URLSearchParams(location.search);
-  return p.get("table") || "Unknown";
+const qsa = s => Array.from(document.querySelectorAll(s));
+function esc(s){ return String(s||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;'); }
+function niceAlert(opts){
+  if(window.Swal) return Swal.fire(opts);
+  alert((opts.title?opts.title + '\n':'') + (opts.text || ''));
 }
 
-/* ========= STATE ========= */
+/* ---------------- STATE ---------------- */
 let MENU = [];
 let filtered = [];
 let cart = [];
+let countdownTimer = null;
+let countdownStart = null;
+let countdownSeconds = 15;
+let countdownCancelled = false;
+let GST_VALUE = 0; // percent
+let countdownInProgress = false; // prevents multiple start
+let finalizeCalled = false; // prevents finalize running many times
+let currentOrderRecord = null;
 
-/* ========= SUPABASE MENU FETCH ========= */
-async function loadMenu() {
-  const { data, error } = await db
-    .from("menu")
-    .select("*")
-    .order("id");
-
-  if (error) {
-    console.error("Menu fetch error:", error);
-    return [];
+/* ---------------- FETCH MENU (Supabase or local) ---------------- */
+async function fetchMenu(){
+  if(!SUPABASE_URL || !SUPABASE_ANON_KEY){
+    console.warn('Supabase not configured — using local menu.json');
+    const r = await fetch(MENU_URL);
+    if(!r.ok) throw new Error('menu.json load failed');
+    return await r.json();
   }
-  return data;
+  const url = `${SUPABASE_URL}/rest/v1/${MENU_TABLE}?select=*&order:id.asc`;
+  const res = await fetch(url, { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } });
+  if(!res.ok){
+    const t = await res.text();
+    throw new Error('Supabase fetch failed: ' + res.status + ' ' + t);
+  }
+  return await res.json();
 }
 
-/* ========= RENDER ========= */
+/* ---------------- RENDER ---------------- */
 function renderCategories(){
-  const cats = [...new Set(MENU.map(i => i.category))].sort();
-  qs("#categoryFilter").innerHTML =
-    `<option value="">All categories</option>` +
-    cats.map(c => `<option>${escapeHtml(c)}</option>`).join("");
+  const cats = [...new Set(MENU.map(i=>i.category || 'Misc'))];
+  qs('#categoryFilter').innerHTML = '<option value="">All categories</option>' + cats.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('');
 }
 
 function renderMenu(list){
-  const div = qs("#menu");
-  div.innerHTML = "";
-  qs("#count").textContent = list.length;
+  const container = qs('#menu'); container.innerHTML = '';
+  qs('#count') && (qs('#count').textContent = list.length);
+  if(list.length === 0){ container.innerHTML = '<div style="grid-column:1/-1;padding:40px;text-align:center;color:var(--muted)">No items</div>'; return; }
 
-  if (!list.length){
-    div.innerHTML = `<div style="grid-column:1/-1;padding:40px;text-align:center;color:var(--muted)">No items found</div>`;
-    return;
-  }
-
-  list.forEach(item => {
-    const card = document.createElement("div");
-    card.className = "card";
+  list.forEach((it, idx) => {
+    const thumb = it.thumb || it.img || `https://picsum.photos/seed/${idx+1}/300/200`;
+    const rating = it.rating || (Math.round((3.8 + Math.random()*1.4)*10)/10);
+    const card = document.createElement('div'); card.className = 'card';
     card.innerHTML = `
-      <img class="thumb" loading="lazy" src="${item.img}">
+      <img class="thumb" loading="lazy" src="${esc(thumb)}" alt="${esc(it.name)}">
       <div class="card-body">
-        <div class="title">${escapeHtml(item.name)}</div>
-        <div class="cat small">${escapeHtml(item.category)}</div>
+        <div class="title">${esc(it.name)}</div>
+        <div class="rating">★ ${esc(String(rating))}</div>
+        <div class="cat small">${esc(it.category || 'Misc')}</div>
         <div class="price-row">
-          <div class="price">₹${item.price}</div>
-          <button class="add-btn" data-id="${item.id}">Add</button>
+          <div class="price">₹${esc(String(it.price||0))}</div>
+          <button class="add-btn" data-id="${esc(String(it.id))}">Add</button>
         </div>
-      </div>
-    `;
-    div.appendChild(card);
+      </div>`;
+    container.appendChild(card);
   });
 
-  qsa(".add-btn").forEach(btn => {
-    btn.onclick = () => {
-      const id = Number(btn.dataset.id);
-      const item = MENU.find(m => m.id === id);
-      addToCart(item);
-      btn.textContent = "Added";
-      setTimeout(() => btn.textContent = "Add", 700);
-    };
-  });
+  container.onclick = function(e){
+    const btn = e.target.closest('.add-btn');
+    if(btn){
+      const id = btn.dataset.id; const item = MENU.find(x=>String(x.id)===String(id)); if(item) addToCart(item,1);
+      btn.textContent = 'Added'; setTimeout(()=>btn.textContent='Add',600);
+    }
+  };
 }
 
+/* ---------------- FILTERS ---------------- */
 function applyFilters(){
-  const q = qs("#search").value.toLowerCase();
-  const c = qs("#categoryFilter").value;
-
-  filtered = MENU.filter(it => {
-    const catOK = c ? it.category === c : true;
-    const searchOK = q ? it.name.toLowerCase().includes(q) : true;
-    return catOK && searchOK;
-  });
-
+  const q = qs('#search') ? qs('#search').value.trim().toLowerCase() : '';
+  const cat = qs('#categoryFilter') ? qs('#categoryFilter').value : '';
+  filtered = MENU.filter(it => (cat?it.category===cat:true) && (q?String(it.name).toLowerCase().includes(q) || String(it.category||'').toLowerCase().includes(q):true));
   renderMenu(filtered);
 }
 
-/* ======== CART ======== */
-function addToCart(item){
-  const ex = cart.find(c => c.id === item.id);
-  if (ex) ex.qty++;
-  else cart.push({ ...item, qty: 1 });
+/* ---------------- CART ---------------- */
+function addToCart(item, qty=1){
+  const existing = cart.find(c=>c.id === item.id);
+  if(existing) existing.qty += qty; else cart.push({id:item.id, name:item.name, price:Number(item.price||0), qty});
   updateCartUI();
 }
 
 function updateCartUI(){
-  const total = cart.reduce((s,i)=>s+i.price*i.qty,0);
-  const count = cart.reduce((s,i)=>s+i.qty,0);
-  qs("#cartItemsSmall").textContent = `${count} items • ₹${total}`;
+  const subtotal = cart.reduce((s,i)=>s + i.price * i.qty, 0);
+  const gstAmount = Math.round((subtotal * GST_VALUE) / 100);
+  const total = subtotal + gstAmount;
+  const count = cart.reduce((s,i)=>s + i.qty, 0);
+  if(qs('#cartItemsSmall')) qs('#cartItemsSmall').textContent = `${count} items • ₹${total}`;
 }
 
-function showCartModal(){
-  const modal = qs("#modalBackdrop");
-  const content = qs("#orderContent");
+/* ---------------- QUICK ACTIONS ---------------- */
+qs('#addAll')?.addEventListener('click', ()=> { MENU.forEach(i=> addToCart(i,1)); });
+qs('#clearFilters')?.addEventListener('click', ()=> { if(qs('#search')) qs('#search').value=''; if(qs('#categoryFilter')) qs('#categoryFilter').value=''; applyFilters(); });
 
-  if (!cart.length){
-    content.innerHTML = `<div style="padding:20px;color:#666">Cart is empty</div>`;
-  } else {
-    let html = `<table><thead><tr><th>Item</th><th>Price</th><th>Qty</th><th>Total</th></tr></thead><tbody>`;
-    cart.forEach(c => {
-      html += `
-      <tr>
-        <td>${escapeHtml(c.name)}</td>
-        <td>₹${c.price}</td>
-        <td>
-          <button class="qty-btn" data-id="${c.id}" data-act="dec">-</button>
-          ${c.qty}
-          <button class="qty-btn" data-id="${c.id}" data-act="inc">+</button>
-        </td>
-        <td>₹${c.qty * c.price}</td>
-      </tr>`;
-    });
-    html += `</tbody></table>`;
-    content.innerHTML = html;
+/* ---------------- ORDER SUMMARY (modal) ---------------- */
 
-    qsa(".qty-btn").forEach(b => {
-      b.onclick = () => {
-        const item = cart.find(x => x.id == b.dataset.id);
-        b.dataset.act === "inc" ? item.qty++ : item.qty--;
-        cart = cart.filter(x => x.qty > 0);
-        showCartModal();
-        updateCartUI();
-      };
+qsa('.float-btn').forEach(btn => {
+  btn.addEventListener('click', async (e) => {
+    const action = btn.dataset.action;  // 'call_waiter' या 'get_bill'
+    const tableNumber = new URLSearchParams(window.location.search).get('table');
+
+    // --------- TABLE CHECK ---------
+    if (!tableNumber || tableNumber.trim() === "") {
+      // Table missing → popup / sms
+      niceAlert({
+        icon: "error",
+        title: "No table detected",
+        text: "You are not at any table. Please scan your table QR.",
+        confirmButtonColor: "#ff6b00"
+      });
+
+      try {
+        // Optional: SMS to customer (if you have SMS API)
+        await attemptSendSMS("Unknown", `Action: ${action.replace('_',' ')} attempted but table not found.`);
+      } catch(e){ console.warn("SMS failed", e); }
+
+      return; // Stop further DB insert
+    }
+
+    // --------- DATABASE INSERT ---------
+    const payload = {
+      table_no: tableNumber,
+      action: action,
+      created_at: new Date().toISOString(),
+      status: 'new'
+    };
+
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/table_request`, {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if(res.ok){
+        niceAlert({
+          icon:'success',
+          title:'Request sent',
+          text:`${action.replace('_',' ')} requested successfully!`
+        });
+      } else {
+        throw new Error('DB insert failed');
+      }
+
+    } catch(err) {
+      console.error(err);
+      niceAlert({
+        icon:'error',
+        title:'Error',
+        text:'Failed to send request'
+      });
+    }
+  });
+});
+
+
+function showOrderSummary(){
+  const box = qs('#orderContent'); if(!box) return;
+  box.innerHTML = '';
+  if(!cart.length) { box.innerHTML = '<div style="padding:18px;color:var(--muted)">Cart is empty</div>'; }
+  else{
+    cart.forEach(ci => {
+      const row = document.createElement('div');
+      row.style = 'display:flex;justify-content:space-between;align-items:center;margin:10px 0;padding:6px 0;border-bottom:1px solid #f0f0f0';
+      row.innerHTML = `
+        <div style="flex:1">
+          <div style="font-weight:700">${esc(ci.name)}</div>
+          <div class="small">₹${esc(String(ci.price))}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <button class="qty-btn" data-act="dec" data-id="${esc(String(ci.id))}">-</button>
+          <div id="qty-${esc(String(ci.id))}">${ci.qty}</div>
+          <button class="qty-btn" data-act="inc" data-id="${esc(String(ci.id))}">+</button>
+        </div>`;
+      box.appendChild(row);
     });
+
+    const subtotal = cart.reduce((s,i)=>s + i.price*i.qty,0);
+    const gstAmount = Math.round((subtotal * GST_VALUE) / 100);
+    const grand = subtotal + gstAmount;
+
+    const totDiv = document.createElement('div');
+    totDiv.style='text-align:right;margin-top:12px;font-weight:800';
+    totDiv.innerHTML = `Subtotal: ₹${subtotal} &nbsp; | &nbsp; GST(${GST_VALUE}%): ₹${gstAmount} &nbsp; | &nbsp; <span style="font-size:1.1em">Total: ₹${grand}</span>`;
+    box.appendChild(totDiv);
+
+    box.onclick = e => {
+      const btn = e.target.closest('.qty-btn'); if(!btn) return;
+      const id = btn.dataset.id; const act = btn.dataset.act; const item = cart.find(x=>String(x.id)===String(id));
+      if(!item) return;
+      if(act === 'inc') item.qty++;
+      else item.qty = Math.max(0, item.qty - 1);
+      cart = cart.filter(c=>c.qty>0);
+      updateCartUI(); showOrderSummary();
+    };
+  }
+  qs('#modalBackdrop') && (qs('#modalBackdrop').style.display = 'flex');
+}
+
+qs('#viewCart')?.addEventListener('click', showOrderSummary);
+qs('#checkout')?.addEventListener('click', showOrderSummary);
+qs('#modalBackdrop')?.addEventListener('click', e => { if(e.target === qs('#modalBackdrop')) { qs('#modalBackdrop').style.display = 'none'; stopCountdown(); } });
+
+/* ---------------- DB + SMS helpers ---------------- */
+async function insertOrderToDB(orderPayload){
+  if(!SUPABASE_URL || !SUPABASE_ANON_KEY) return null;
+  try{
+    const ordersUrl = `${SUPABASE_URL}/rest/v1/${ORDERS_TABLE}`;
+    const res = await fetch(ordersUrl, {
+      method:'POST',
+      headers:{
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        'Content-Type':'application/json',
+        'Prefer':'return=representation'
+      },
+      body: JSON.stringify(orderPayload)
+    });
+    if(!res.ok){
+      const t = await res.text();
+      throw new Error('Order insert failed: ' + res.status + ' ' + t);
+    }
+    const data = await res.json();
+    return data && data[0] ? data[0] : null;
+  }catch(err){ console.error('Insert order error', err); return null; }
+}
+
+async function attemptSendSMS(phoneOrTable, text){
+  if(!SMS_HOOK_URL) return false;
+  try{
+    await fetch(SMS_HOOK_URL, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({to: phoneOrTable, message: text})
+    });
+    return true;
+  }catch(err){ console.warn('SMS send failed', err); return false; }
+}
+
+/* ---------------- Place button rendering (safe attach) ---------------- */
+function renderPlaceButton(){
+  const area = qs('#actionArea');
+  if(!area) return;
+  // clear old content & listeners by rebuilding DOM nodes
+  area.innerHTML = '';
+  const btn = document.createElement('button');
+  btn.id = 'startPlace';
+  btn.className = 'circle-btn';
+  btn.textContent = 'Place';
+  area.appendChild(btn);
+
+  btn.addEventListener('click', ()=> startCircularCountdown(15));
+}
+
+/* ---------------- 15s Circular Countdown (no DB insert at start) ---------------- */
+function startCircularCountdown(seconds = 15){
+  // prevent duplicate starts
+  if(countdownInProgress) return;
+  if(!cart.length){
+    niceAlert({ icon:'warning', title:'Add items first', text:'Please add at least one item before placing the order!', confirmButtonColor:'#ff6b00' });
+    return;
   }
 
-  modal.style.display = "flex";
+  countdownInProgress = true;
+  finalizeCalled = false;
+  countdownCancelled = false;
+  countdownSeconds = seconds;
+  countdownStart = Date.now();
+
+  const area = qs('#actionArea'); if(!area) return;
+  // rebuild area with circular UI and cancel
+  area.innerHTML = '';
+  const circleBtn = document.createElement('button'); circleBtn.className = 'circle-btn'; circleBtn.textContent = `${seconds}s`;
+  const cancelBtn = document.createElement('button'); cancelBtn.className = 'cancel-btn'; cancelBtn.textContent = 'Cancel';
+  area.appendChild(circleBtn); area.appendChild(cancelBtn);
+
+  // update func
+  function update(){
+    if(!countdownInProgress) return;
+    const elapsed = Date.now() - countdownStart;
+    const pct = Math.min(1, elapsed / (countdownSeconds*1000));
+    const deg = Math.round(pct * 360);
+    circleBtn.style.background = `conic-gradient(var(--accent) ${deg}deg, #eee ${deg}deg)`;
+    const remain = Math.max(0, Math.ceil((countdownSeconds*1000 - elapsed)/1000));
+    circleBtn.textContent = `${remain}s`;
+    if(pct >= 1 && !finalizeCalled){
+      finalizeCalled = true;
+      // ensure cleanup of interval before finalize to prevent re-entry loops
+      stopCountdown(false); // false => do not re-render the Place button here; finalize will clear UI
+      // call finalizeOrder (async)
+      finalizeOrder().catch(err=>{ console.error('finalizeOrder error', err); });
+    }
+  }
+
+  update();
+  countdownTimer = setInterval(()=>{ if(countdownCancelled){ stopCountdown(); } else update(); }, 150);
+
+  // cancel handler
+  cancelBtn.addEventListener('click', ()=>{
+    countdownCancelled = true;
+    stopCountdown();
+    niceAlert({ icon:'info', title:'Order cancelled', text:'Your order has been cancelled', confirmButtonColor:'#ff6b00' });
+    qs('#modalBackdrop') && (qs('#modalBackdrop').style.display = 'none');
+  });
 }
 
-/* ========= ORDER BUILD ========= */
-function buildOrderPayload(){
-  return {
-    table_no: getTableFromURL(),
-    items: cart.map(c => ({ id: c.id, name: c.name, price: c.price, qty: c.qty })),
-    total: cart.reduce((s,i)=>s+i.price*i.qty,0),
-    created_at: new Date().toISOString()
+function stopCountdown(renderPlace = true){
+  // clear timer and flags
+  if(countdownTimer){ clearInterval(countdownTimer); countdownTimer = null; }
+  countdownInProgress = false;
+  finalizeCalled = false;
+  countdownCancelled = false;
+  // render place button again so user can start new order
+  if(renderPlace) renderPlaceButton();
+}
+
+/* ---------------- FINALIZE ORDER (only after countdown) ---------------- */
+async function finalizeOrder() {
+  // guard: ensure finalize runs only once 
+  if (finalizeCalled) return;
+  finalizeCalled = true;
+
+  // --------- TABLE NUMBER CHECK FIRST ---------
+  const tableNumber = new URLSearchParams(window.location.search).get('table');
+
+  if (!tableNumber || tableNumber.trim() === "") {
+
+    // 1) TIMER को रोक देना
+    stopCountdown();
+
+    // 2) तुरंत SMS भेजना (NO DB, NO DELAY)
+    try {
+      await attemptSendSMS("Unknown", "You are not present in any table.");
+    } catch (e) { 
+      console.warn("SMS failed", e);
+    }
+
+    // 3) Popup दिखा दो
+    niceAlert({
+      icon: "error",
+      title: "You are not in any table",
+      text: "Please scan the table QR again.",
+      confirmButtonColor: "#ff6b00"
+    });
+
+    finalizeCalled = false; // allow retry
+    return;   // STOP HERE (Do not go ahead)
+  }
+
+  // --------- CART EMPTY CHECK ---------
+  if (!cart.length) {
+    niceAlert({
+      icon: 'warning',
+      title: 'Add items first',
+      text: 'Please add at least one item before placing the order!',
+      confirmButtonColor: '#ff6b00'
+    });
+    stopCountdown();
+    finalizeCalled = false;
+    return;
+  }
+
+  // ---------- NORMAL ORDER PROCESS BEGINS ----------
+  const tableNo = tableNumber;
+  const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  const gstAmount = Math.round((subtotal * GST_VALUE) / 100);
+  const grand = subtotal + gstAmount;
+
+  const orderPayloadForDB = {
+    table_no: tableNo,
+    created_at: new Date().toISOString(),
+    items_json: JSON.stringify(cart.map(c => ({
+      id: c.id,
+      name: c.name,
+      price: c.price,
+      qty: c.qty
+    }))),
+    total: grand,
+    status: 'new'
   };
-}
 
-/* ========= SEND ORDER TO SUPABASE ========= */
-async function sendOrder(){
-  if (!cart.length) return alert("Cart is empty");
-
-  const order = buildOrderPayload();
-
-  const { error } = await db
-    .from("orders")
-    .insert([{
-      table_no: order.table_no,
-      items_json: order.items,
-      total: order.total,
-      created_at: order.created_at
-    }]);
-
-  if (error){
-    console.error(error);
-    return alert("Failed to place order");
+  // Insert order once
+  currentOrderRecord = null;
+  try {
+    const inserted = await insertOrderToDB(orderPayloadForDB);
+    if (inserted) {
+      currentOrderRecord = inserted;
+    }
+  } catch (e) {
+    console.error("DB insert error", e);
   }
 
-  alert("Order placed!");
+  // Single popup
+  niceAlert({
+    icon: 'success',
+    title: 'Your order is being prepared',
+    text: 'The kitchen has started working on your order!',
+    timer: 3000,
+    showConfirmButton: false
+  });
+
+  // SMS once
+  try {
+    const smsText = `Table ${tableNo}: Your order is being prepared. Total ₹${grand}`;
+    await attemptSendSMS(tableNo, smsText);
+  } catch (e) { }
+
+  // clear cart
   cart = [];
   updateCartUI();
-  qs("#modalBackdrop").style.display = "none";
+  stopCountdown(true);
 }
 
-/* ========= INIT ========= */
+
+/* ---------------- BOOTSTRAP ---------------- */
 async function init(){
-  qs("#table-info").textContent = "Table: " + getTableFromURL();
+  qs('#table-info') && (qs('#table-info').textContent = 'Table: ' + (new URLSearchParams(window.location.search).get('table') || '—'));
+  try{
+    const data = await fetchMenu();
+    MENU = data.map((it, i)=>({ id: it.id ?? (i+1), name: it.name ?? ('Item '+(i+1)), price: Number(it.price ?? 0), category: it.category ?? 'Misc', img: it.img ?? it.image ?? `https://picsum.photos/seed/${i+1}/300/200`, thumb: it.thumb ?? (it.img? it.img : `https://picsum.photos/seed/${i+1}/300/200`), rating: it.rating }));
+    renderCategories(); applyFilters();
+    if(qs('#search')) qs('#search').oninput = applyFilters;
+    if(qs('#categoryFilter')) qs('#categoryFilter').onchange = applyFilters;
 
-  MENU = await loadMenu();
-  renderCategories();
-  applyFilters();
+    // ensure a single place button is present and wired
+    renderPlaceButton();
 
-  qs("#search").oninput = applyFilters;
-  qs("#categoryFilter").onchange = applyFilters;
-  qs("#clearFilters").onclick = () => {
-    qs("#search").value = "";
-    qs("#categoryFilter").value = "";
-    applyFilters();
-  };
+    // Fetch GST from database (if configured)
+    if(SUPABASE_URL && SUPABASE_ANON_KEY){
+      try {
+        const gstUrl = `${SUPABASE_URL}/rest/v1/gst_rate?select=*`;
+        const gstRes = await fetch(gstUrl, { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } });
+        if(gstRes.ok){
+          const gstData = await gstRes.json();
+          GST_VALUE = Number(gstData[0]?.gst ?? gstData[0]?.rate ?? 0);
+          console.log('GST fetched:', GST_VALUE);
+        } else {
+          console.warn('GST fetch not ok', gstRes.status);
+        }
+      } catch(e) { console.warn("GST fetch failed", e); }
+    }
 
-  qs("#viewCart").onclick = showCartModal;
-  qs("#checkout").onclick = showCartModal;
-  qs("#closeModal").onclick = () => qs("#modalBackdrop").style.display = "none";
-  qs("#modalBackdrop").onclick = e => { if(e.target.id === "modalBackdrop") qs("#modalBackdrop").style.display = "none"; };
-  qs("#sendOrder").onclick = sendOrder;
-
-  updateCartUI();
+  }catch(err){ console.error('Menu load failed', err); qs('#menu') && (qs('#menu').innerHTML = '<div style="grid-column:1/-1;padding:40px;text-align:center;color:var(--muted)">Failed to load menu. Check console.</div>'); }
 }
 
 init();
 </script>
 
+
+
 </body>
 </html>
-
