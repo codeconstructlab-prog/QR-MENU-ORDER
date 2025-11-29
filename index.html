@@ -16,17 +16,114 @@
     .controls input[type="search"],.controls select{padding:10px 12px;border-radius:10px;border:1px solid #e3e6ea;min-width:180px}
     .controls button{background:var(--accent);color:#fff;border:none;padding:10px 12px;border-radius:10px;cursor:pointer}
 
-    .menu-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
-    .card{background:var(--card);border-radius:var(--radius);overflow:hidden;box-shadow:0 6px 18px rgba(12,20,30,0.06);display:flex;flex-direction:column}
-    .thumb{width:100%;aspect-ratio:4/3;object-fit:cover;display:block;background:#ddd}
-    .card-body{padding:10px;display:flex;flex-direction:column;gap:6px;flex:1}
-    .title{font-weight:600;font-size:0.95rem}
-    .cat{font-size:0.8rem;color:var(--muted)}
-    .rating{font-size:0.8rem;color:#f5b400;font-weight:700}
-    .price-row{display:flex;align-items:center;justify-content:space-between;margin-top:auto}
-    .price{font-weight:700}
-    .add-btn{background:var(--accent);color:#fff;border:none;padding:8px 10px;border-radius:8px;cursor:pointer;font-size:0.85rem}
+    /* ---------------- NEW SWIGGY-LIKE ROW LAYOUT ---------------- */
+    .menu-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
 
+    /* SWIGGY STYLE ROW CARD */
+    .card {
+      background: #fff;
+      border-radius: 14px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+      padding: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 14px;
+      overflow: visible;
+    }
+
+    /* LEFT SIDE TEXT */
+    .card-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding: 4px 0;
+      min-width: 0;
+    }
+
+    .title {
+      font-weight: 600;
+      font-size: 1rem;
+      margin: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .cat,
+    .rating {
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+
+    .rating span {
+      color: #ffa200;
+      font-weight: bold;
+    }
+
+    /* PRICE ROW */
+    .price-row {
+      display: flex;
+      align-items: center;
+      margin-top: 6px;
+      gap: 12px;
+    }
+
+    .price {
+      font-weight: 700;
+      font-size: 1rem;
+      color: #111;
+    }
+
+    /* RIGHT SIDE IMAGE */
+    .thumb {
+      width: 120px;
+      height: 100px;
+      border-radius: 12px;
+      object-fit: cover;
+      display:block;
+      background:#eee;
+      box-shadow: 0 6px 14px rgba(0,0,0,0.06);
+    }
+
+    /* ADD BUTTON BELOW IMAGE */
+    .add-btn {
+      margin-top: 8px;
+      background:#00c445;
+      color: #fff;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 10px;
+      cursor: pointer;
+      width: 120px;
+      font-weight: 600;
+    }
+
+    /* small meta layout under title */
+    .meta-row { display:flex; gap:10px; align-items:center; color:var(--muted); font-size:13px; }
+
+    /* MOBILE RESPONSIVE */
+    @media(max-width:600px){
+      .card {
+        padding: 10px;
+      }
+      .thumb {
+        width: 100px;
+        height: 85px;
+      }
+      .add-btn {
+        width: 100px;
+        font-size: 0.85rem;
+      }
+      .title { font-size: 15px; white-space: normal; }
+    }
+
+    /* keep cart and floating buttons as before */
     footer.cart-bar{position:fixed;right:16px;bottom:16px;z-index:70;display:flex;justify-content:flex-end;width: fit-content;}
     .cart{background:linear-gradient(180deg,#fff,#fafafa);padding:12px;border-radius:14px;box-shadow:0 8px 24px rgba(12,20,30,0.12);display:flex;gap:10px;align-items:center;width: fit-content;}
 
@@ -37,38 +134,37 @@
     .qty-btn{padding:6px 10px;border-radius:6px;border:1px solid #ddd;cursor:pointer;background:#fff}
      
     #floatingButtons {
-  position: fixed;
-  right: 16px;
-  top: 50%;
-  transform: translateY(-50%);
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  z-index: 9999;
-}
+      position: fixed;
+      right: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      z-index: 9999;
+    }
 
-.float-btn {
-  background: linear-gradient(45deg, #ff006a, #ff6b00, #ffbb00);
-  color: #fff;
-  padding: 10px 18px;
-  border: none;
-  border-radius: 30px;
-  cursor: pointer;
-  font-weight: bold;
-  font-size: 14px;
-  white-space: nowrap;      /* text wrap nahi hoga */
-  display: flex;
-  align-items: center;
-  justify-content: center;  /* text perfectly center */
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-  transition: all 0.25s ease;
-}
+    .float-btn {
+      background: linear-gradient(45deg, #ff006a, #ff6b00, #ffbb00);
+      color: #fff;
+      padding: 10px 18px;
+      border: none;
+      border-radius: 30px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 14px;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      transition: all 0.25s ease;
+    }
 
-.float-btn:hover {
-  transform: scale(1.07);
-  filter: brightness(1.08);
-}
-
+    .float-btn:hover {
+      transform: scale(1.07);
+      filter: brightness(1.08);
+    }
 
     /* circular progress button */
     .circle-btn{width:64px;height:64px;border-radius:50%;border:none;background:conic-gradient(var(--accent) 0deg, #e00606 0deg);display:flex;align-items:center;justify-content:center;color:#181717;font-weight:700;cursor:pointer}
@@ -200,17 +296,26 @@ function renderMenu(list){
     const thumb = it.thumb || it.img || `https://picsum.photos/seed/${idx+1}/300/200`;
     const rating = it.rating || (Math.round((3.8 + Math.random()*1.4)*10)/10);
     const card = document.createElement('div'); card.className = 'card';
+
+    /* ---- NEW CARD HTML (Swiggy-like row) ---- */
     card.innerHTML = `
-      <img class="thumb" loading="lazy" src="${esc(thumb)}" alt="${esc(it.name)}">
       <div class="card-body">
         <div class="title">${esc(it.name)}</div>
-        <div class="rating">★ ${esc(String(rating))}</div>
-        <div class="cat small">${esc(it.category || 'Misc')}</div>
+        <div class="meta-row">
+          <div class="rating"><span>★</span> ${esc(String(rating))}</div>
+          <div class="cat">${esc(it.category || 'Misc')}</div>
+        </div>
         <div class="price-row">
           <div class="price">₹${esc(String(it.price||0))}</div>
-          <button class="add-btn" data-id="${esc(String(it.id))}">Add</button>
         </div>
-      </div>`;
+      </div>
+
+      <div style="display:flex;flex-direction:column;align-items:center;">
+        <img class="thumb" loading="lazy" src="${esc(thumb)}" alt="${esc(it.name)}">
+        <button class="add-btn" data-id="${esc(String(it.id))}">ADD</button>
+      </div>
+    `;
+
     container.appendChild(card);
   });
 
@@ -218,7 +323,7 @@ function renderMenu(list){
     const btn = e.target.closest('.add-btn');
     if(btn){
       const id = btn.dataset.id; const item = MENU.find(x=>String(x.id)===String(id)); if(item) addToCart(item,1);
-      btn.textContent = 'Added'; setTimeout(()=>btn.textContent='Add',600);
+      btn.textContent = 'Added'; setTimeout(()=>btn.textContent='ADD',600);
     }
   };
 }
@@ -613,3 +718,4 @@ init();
 
 </body>
 </html>
+
